@@ -1,0 +1,36 @@
+name: Deploy Flet App to Pages
+on:
+  push:
+    branches: [ main ] # Spustí se při každém pushi do větve main
+
+permissions:
+  contents: write # Důležité, aby robot mohl nahrávat soubory
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install flet
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Build Web
+        run: flet publish main.py --base-url /8Puzzle_Solver/
+
+      - name: Create .nojekyll
+        run: touch dist/.nojekyll # Toto opravuje chybu 404 u Fletu
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: dist
+          branch: gh-pages # Robot vytvoří větev gh-pages za tebe
