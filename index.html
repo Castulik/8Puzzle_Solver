@@ -26,13 +26,13 @@
       multiView: false,
       noCdn: false,
       webSocketEndpoint: "/ws",
-      entrypointBaseUrl: "",     // OPRAVENO (prázdné nebo ".")
-      assetBase: "",              // OPRAVENO
+      entrypointBaseUrl: "/",
+      assetBase: "/",
       routeUrlStrategy: "path",
-      canvasKitBaseUrl: "canvaskit/",      // OPRAVENO (bez / na začátku)
-      pyodideUrl: "pyodide/pyodide.js",   // OPRAVENO (bez / na začátku)
+      canvasKitBaseUrl: "/canvaskit/",
+      pyodideUrl: "/pyodide/pyodide.js",
       webRenderer: "auto",
-      fontFallbackBaseUrl: "assets/fonts/",
+      fontFallbackBaseUrl: "assets/fonts/", // for Noto Emoji, use Google CDN
       appPackageUrl: "app.tar.gz"
     }
 
