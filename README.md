@@ -7,7 +7,7 @@ A powerful web-based application that solves the classic 8-puzzle game using var
 ---
 
 ## 📸 Preview
-![8-Puzzle Solver Preview](animace.gif) 
+![8-Puzzle Solver Preview](Animace.gif) 
 
 ## 🧐 About the Project
 The **8-puzzle** consists of a 3x3 grid with 8 numbered tiles and one empty space. The goal is to move the tiles until they reach the target configuration: `[[1, 2, 3], [4, 5, 6], [7, 8, 0]]`.
