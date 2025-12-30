@@ -24,10 +24,16 @@ jobs:
       - name: Build Web
         run: flet publish mainWEB.py --base-url /8Puzzle_Solver/
 
-      - name: Apply COI Fix from CDN
+      - name: Create local COI fix
         run: |
-          # Vložíme skript přímo z CDN. Žádné lokální soubory = žádné 404 chyby.
-          sed -i 's/<head>/<head><script src="https:\/\/cdnjs.cloudflare.com\/ajax\/libs\/coi-serviceworker\/0.1.7\/coi-serviceworker.min.js"><\/script>/' dist/index.html
+          # Vytvoříme soubor přímo v dist složce, aby nebyl blokován (ORB)
+          cat <<EOF > dist/coi-serviceworker.js
+          if(typeof window==="undefined"){self.addEventListener("install",()=>self.skipWaiting());self.addEventListener("activate",e=>e.waitUntil(self.clients.claim()));self.addEventListener("fetch",e=>{if(e.request.cache==="only-if-cached"&&e.request.mode!=="same-origin")return;e.respondWith(fetch(e.request).then(r=>{if(r.status===0)return r;const h=new Headers(r.headers);h.set("Cross-Origin-Embedder-Policy","credentialless");h.set("Cross-Origin-Opener-Policy","same-origin");return new Response(r.body,{status:r.status,statusText:r.statusText,headers:h})}).catch(e=>console.error(e)))});
+          }else{const s=document.createElement("script");s.src=document.currentScript.src;s.dataset.cookie="coi";document.head.appendChild(s);if(window.crossOriginIsolated===false&&"serviceWorker"in navigator){navigator.serviceWorker.register("/8Puzzle_Solver/coi-serviceworker.js");}}
+          EOF
+          
+          # Upravíme index.html, aby odkazoval na tento LOKÁLNÍ soubor
+          sed -i 's/<head>/<head><script src="coi-serviceworker.js"><\/script>/' dist/index.html
 
       - name: Create .nojekyll
         run: touch dist/.nojekyll
