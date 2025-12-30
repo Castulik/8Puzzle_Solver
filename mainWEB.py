@@ -3,7 +3,6 @@ import flet as ft
 import asyncio
 import time
 import random
-
 import heapq
 import asyncio  # NUTNÉ PRO WEB
 
