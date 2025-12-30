@@ -1,10 +1,10 @@
 name: Deploy Flet App to Pages
 on:
   push:
-    branches: [ main ] # Spustí se při každém pushi do větve main
+    branches: [ main ]
 
 permissions:
-  contents: write # Důležité, aby robot mohl nahrávat soubory
+  contents: write
 
 jobs:
   build-and-deploy:
@@ -26,11 +26,20 @@ jobs:
       - name: Build Web
         run: flet publish mainWEB.py --base-url /8Puzzle_Solver/
 
+      # --- TATO ČÁST JE NOVÁ: OPRAVA PRO PYTHON WORKER ---
+      - name: Apply SharedArrayBuffer Fix (COI)
+        run: |
+          # 1. Stažení opravného skriptu přímo do složky dist
+          curl -L https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js -o dist/coi-serviceworker.js
+          
+          # 2. Vložení skriptu do index.html hned na začátek <head>
+          sed -i 's/<head>/<head><script src="coi-serviceworker.js"><\/script>/' dist/index.html
+
       - name: Create .nojekyll
-        run: touch dist/.nojekyll # Toto opravuje chybu 404 u Fletu
+        run: touch dist/.nojekyll
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: dist
-          branch: gh-pages # Robot vytvoří větev gh-pages za tebe
+          branch: gh-pages
