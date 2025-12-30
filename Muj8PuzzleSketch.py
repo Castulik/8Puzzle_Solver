@@ -659,12 +659,12 @@ puzzle = PuzzleSolver([[3, 1, 2], [6, 5, 4], [8 , 7, 0]])
 
 #puzzle = PuzzleSolver([[3, 8, 6], [2, 5, 0], [1, 7, 4]])
 
-#vysledek = puzzle.solve_puzzle_bfs()
-#vysledek = puzzle.solve_puzzle_dfs()
-#vysledek = puzzle.solve_puzzle_dfs_limit()
+vysledek = puzzle.solve_puzzle_bfs()
+vysledek = puzzle.solve_puzzle_dfs()
+vysledek = puzzle.solve_puzzle_dfs_limit()
 
-vysledek = puzzle.informovany_algortimus_greedy()
 vysledek = puzzle.informovany_algortimus_a_star()
+vysledek = puzzle.informovany_algortimus_greedy()
 #vysledek = puzzle.informovany_algortimus_a_star_LC()
 #vysledek = puzzle.informovany_algortimus_a_star_tiebreaking_LC()
 vysledek = puzzle.informovany_algortimus_a_star_weighted()

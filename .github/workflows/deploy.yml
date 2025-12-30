@@ -24,7 +24,7 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Build Web
-        run: flet publish main.py --base-url /8Puzzle_Solver/
+        run: flet publish mainWEB.py --base-url /8Puzzle_Solver/
 
       - name: Create .nojekyll
         run: touch dist/.nojekyll # Toto opravuje chybu 404 u Fletu
