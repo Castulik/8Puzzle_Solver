@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>8-Puzzle Solver</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <h1>8-Puzzle: Solver</h1>
+        
+        <div id="loader" class="loader" style="display:none;"></div>
+
+        <div class="toolbar">
+            <select id="algoSelect">
+                <option value="BFS">BFS</option>
+                <option value="DFS">DFS</option>
+                <option value="DFS Limit">DFS Limit</option>
+                <option value="A*">A*</option>
+                <option value="A* LC">A* LC</option>
+                <option value="A* Weighted" selected>A* Weighted</option>
+                <option value="Greedy">Greedy</option>
+            </select>
+            <button id="btnSolve" class="btn-blue">SOLVE</button>
+            <button id="btnReset">BACK TO START</button>
+            <button id="btnShuffle" class="btn-amber">SHUFFLE</button>
+            <button id="btnStop" class="btn-red" style="display:none;">STOP</button>
+        </div>
+
+        <hr>
+
+        <div class="main-layout">
+            <div class="board-section">
+                <div id="grid" class="grid"></div>
+            </div>
+
+            <div class="stats-section">
+                <h3 class="section-title blue">CURRENT RESULT</h3>
+                <div id="statusTxt" class="status-ready">Ready</div>
+                <hr>
+                <div id="statKroky" class="stat-item blue-bold">Steps (CPU): 0</div>
+                <div id="statCas" class="stat-item">Calculation Time: 0s</div>
+                <div class="stat-label">Directions (Empty tile):</div>
+                <div id="statCesta" class="stat-path"></div>
+                <hr>
+                <div id="statProzkoumano" class="stat-item">Nodes Explored: 0</div>
+                <div id="statNavstiveno" class="stat-item">Visited (in memory): 0</div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="history-section">
+                <h3 class="section-title orange">HISTORY</h3>
+                <div id="historyList" class="history-list"></div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

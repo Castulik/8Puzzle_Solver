@@ -1,45 +1,36 @@
-name: Deploy Flet App to Pages
+name: Deploy Static JS App to Pages
 on:
   push:
     branches: [ main ]
+    # Akce se spustí jen při změně těchto souborů
+    paths:
+      - 'index.html'
+      - 'style.css'
+      - 'script.js'
+      - '.github/workflows/deploy.yml'
 
 permissions:
   contents: write
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: pip install flet
-
-      - name: Build Web
-        run: flet publish mainWEB.py --base-url /8Puzzle_Solver/
-
-      - name: Create local COI fix
+      - name: Prepare Web Files
         run: |
-          # Vytvoříme soubor přímo v dist složce, aby nebyl blokován (ORB)
-          cat <<EOF > dist/coi-serviceworker.js
-          if(typeof window==="undefined"){self.addEventListener("install",()=>self.skipWaiting());self.addEventListener("activate",e=>e.waitUntil(self.clients.claim()));self.addEventListener("fetch",e=>{if(e.request.cache==="only-if-cached"&&e.request.mode!=="same-origin")return;e.respondWith(fetch(e.request).then(r=>{if(r.status===0)return r;const h=new Headers(r.headers);h.set("Cross-Origin-Embedder-Policy","credentialless");h.set("Cross-Origin-Opener-Policy","same-origin");return new Response(r.body,{status:r.status,statusText:r.statusText,headers:h})}).catch(e=>console.error(e)))});
-          }else{const s=document.createElement("script");s.src=document.currentScript.src;s.dataset.cookie="coi";document.head.appendChild(s);if(window.crossOriginIsolated===false&&"serviceWorker"in navigator){navigator.serviceWorker.register("/8Puzzle_Solver/coi-serviceworker.js");}}
-          EOF
-          
-          # Upravíme index.html, aby odkazoval na tento LOKÁLNÍ soubor
-          sed -i 's/<head>/<head><script src="coi-serviceworker.js"><\/script>/' dist/index.html
-
-      - name: Create .nojekyll
-        run: touch dist/.nojekyll
+          # Vytvoříme dočasnou složku pro export
+          mkdir deploy_folder
+          # Zkopírujeme jen ty 3 soubory, které chceme na webu
+          cp index.html style.css script.js deploy_folder/
+          # Přidáme nojekyll, aby GitHub neblbnul s CSS
+          touch deploy_folder/.nojekyll
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: dist
-          branch: gh-pages
+          folder: deploy_folder # Nasadí jen obsah této složky
+          branch: gh-pages      # Cílová větev pro web
+          clean: true           # VYMAŽE všechen starý bordel na gh-pages!
