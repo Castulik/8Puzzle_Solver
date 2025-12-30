@@ -2,7 +2,6 @@ name: Deploy Static JS App to Pages
 on:
   push:
     branches: [ main ]
-    # Akce se spustí jen při změně těchto souborů
     paths:
       - 'web/index.html'
       - 'web/style.css'
@@ -23,14 +22,16 @@ jobs:
         run: |
           # Vytvoříme dočasnou složku pro export
           mkdir deploy_folder
-          # Zkopírujeme jen ty 3 soubory, které chceme na webu
-          cp index.html style.css script.js deploy_folder/
-          # Přidáme nojekyll, aby GitHub neblbnul s CSS
+          
+          # TADY JE OPRAVA: Musíme říct, že soubory jsou ve složce web/
+          cp web/index.html web/style.css web/script.js deploy_folder/
+          
+          # Přidáme nojekyll
           touch deploy_folder/.nojekyll
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: deploy_folder # Nasadí jen obsah této složky
-          branch: gh-pages      # Cílová větev pro web
-          clean: true           # VYMAŽE všechen starý bordel na gh-pages!
+          folder: deploy_folder
+          branch: gh-pages
+          clean: true
