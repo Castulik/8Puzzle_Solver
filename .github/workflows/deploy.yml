@@ -26,14 +26,13 @@ jobs:
       - name: Build Web
         run: flet publish mainWEB.py --base-url /8Puzzle_Solver/
 
-      # --- TATO ČÁST JE NOVÁ: OPRAVA PRO PYTHON WORKER ---
       - name: Apply SharedArrayBuffer Fix (COI)
         run: |
-          # 1. Stažení opravného skriptu přímo do složky dist
+          # Stažení skriptu do složky dist
           curl -L https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js -o dist/coi-serviceworker.js
           
-          # 2. Vložení skriptu do index.html hned na začátek <head>
-          sed -i 's/<head>/<head><script src="coi-serviceworker.js"><\/script>/' dist/index.html
+          # Vložení skriptu s absolutní cestou pro GitHub Pages
+          sed -i 's/<head>/<head><script src="\/8Puzzle_Solver\/coi-serviceworker.js"><\/script>/' dist/index.html
 
       - name: Create .nojekyll
         run: touch dist/.nojekyll
