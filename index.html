@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 
-<head><script src="coi-serviceworker.js"></script>
+<head><script src="/8Puzzle_Solver/coi-serviceworker.js"></script>
   <base href="/8Puzzle_Solver/">
 
   <meta charset="UTF-8">
@@ -25,12 +25,12 @@
       pyodide: false,
       multiView: false,
       noCdn: false,
-      webSocketEndpoint: "ws",
-      entrypointBaseUrl: "",
-      assetBase: "",
+      webSocketEndpoint: "/ws",
+      entrypointBaseUrl: "/",
+      assetBase: "/",
       routeUrlStrategy: "path",
-      canvasKitBaseUrl: "canvaskit/",
-      pyodideUrl: "pyodide/pyodide.js",
+      canvasKitBaseUrl: "/canvaskit/",
+      pyodideUrl: "/pyodide/pyodide.js",
       webRenderer: "auto",
       fontFallbackBaseUrl: "assets/fonts/", // for Noto Emoji, use Google CDN
       appPackageUrl: "app.tar.gz"
