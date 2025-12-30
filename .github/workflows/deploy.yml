@@ -28,10 +28,13 @@ jobs:
 
       - name: Apply SharedArrayBuffer Fix (COI)
         run: |
-          # Stažení skriptu do složky dist
-          curl -L https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js -o dist/coi-serviceworker.js
+          # Použijeme prověřený curl příkaz s -L (follow redirects)
+          curl -L https://cdnjs.cloudflare.com/ajax/libs/coi-serviceworker/0.1.7/coi-serviceworker.min.js -o dist/coi-serviceworker.js
           
-          # Vložení skriptu s absolutní cestou pro GitHub Pages
+          # Ověříme, že soubor není prázdný
+          if [ ! -s dist/coi-serviceworker.js ]; then echo "COI download failed"; exit 1; fi
+          
+          # Vložení do index.html (absolutní cesta s base-url)
           sed -i 's/<head>/<head><script src="\/8Puzzle_Solver\/coi-serviceworker.js"><\/script>/' dist/index.html
 
       - name: Create .nojekyll
