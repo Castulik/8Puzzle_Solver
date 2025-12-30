@@ -1,153 +1,61 @@
 <!DOCTYPE html>
-<html>
-
-<head><script src="coi-serviceworker.js"></script>
-  <base href="/8Puzzle_Solver/">
-
-  <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Flet application.">
-
-  <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="8Puzzle_Solver">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png" />
-
-  <title>8Puzzle_Solver</title>
-  <link rel="manifest" href="manifest.json">
-
-  <script>
-    var flet = {
-      pyodide: false,
-      multiView: false,
-      noCdn: false,
-      webSocketEndpoint: "ws",
-      entrypointBaseUrl: "",
-      assetBase: "",
-      routeUrlStrategy: "path",
-      canvasKitBaseUrl: "canvaskit/",
-      pyodideUrl: "pyodide/pyodide.js",
-      webRenderer: "auto",
-      fontFallbackBaseUrl: "assets/fonts/", // for Noto Emoji, use Google CDN
-      appPackageUrl: "app.tar.gz"
-    }
-
-    flet.flutterAppLoaded = new Promise((resolve) => {
-      flet.flutterAppResolve = resolve;
-    });
-
-    flet.flutterAppLoaded.then((flutterApp) => {
-      console.log("Flutter app loaded");
-      if (flet.multiView) {
-        console.log(flutterApp.addView({
-          hostElement: document.querySelector('#view-1'),
-          initialData: {
-            script: 'print("Hello from view 1")',
-            randomValue: Math.floor(Math.random() * 100),
-          },
-          viewConstraints: {
-            //maxWidth: Infinity,
-            maxHeight: Infinity,
-            minHeight: 300,
-            minWidth: 620
-          }
-        }));
-        console.log(flutterApp.addView({
-          hostElement: document.querySelector('#view-2'),
-          initialData: {
-            script: 'print("Hello from view 2")',
-            bar: "baz"
-          },
-          viewConstraints: {
-            minWidth: 620,
-            //maxWidth: 320,
-            //minHeight: 400,
-            maxHeight: 400,
-          }
-        }));
-      }
-    });
-  </script>
-
-  <script>
-flet.pyodide = true;
-flet.micropipIncludePre = false;
-flet.pythonModuleName = "mainWEB";
-flet.noCdn=false;
-flet.webRenderer="auto";
-flet.routeUrlStrategy="path";
-</script>
-
-  <script src="python.js"></script>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>8-Puzzle Solver</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-  <div id="loading">
-    <style>
-      body {
-        inset: 0;
-        overflow: hidden;
-        margin: 0;
-        padding: 0;
-        position: fixed;
-      }
+    <div class="app-container">
+        <h1>8-Puzzle: Solver</h1>
+        
+        <div id="loader" class="loader" style="display:none;"></div>
 
-      #loading {
-        align-items: center;
-        display: flex;
-        height: 100%;
-        justify-content: center;
-        width: 100%;
-      }
+        <div class="toolbar">
+            <select id="algoSelect">
+                <option value="BFS">BFS</option>
+                <option value="DFS">DFS</option>
+                <option value="DFS Limit">DFS Limit</option>
+                <option value="A*">A*</option>
+                <option value="A* LC">A* LC</option>
+                <option value="A* Weighted" selected>A* Weighted</option>
+                <option value="Greedy">Greedy</option>
+            </select>
+            <button id="btnSolve" class="btn-blue">SOLVE</button>
+            <button id="btnReset">BACK TO START</button>
+            <button id="btnShuffle" class="btn-amber">SHUFFLE</button>
+            <button id="btnStop" class="btn-red" style="display:none;">STOP</button>
+        </div>
 
-      #loading img {
-        animation: 1s ease-in-out 0s infinite alternate breathe;
-        opacity: .66;
-        transition: opacity .4s;
-      }
+        <hr>
 
-      #loading.main_done img {
-        opacity: 1;
-      }
+        <div class="main-layout">
+            <div class="board-section">
+                <div id="grid" class="grid"></div>
+            </div>
 
-      #loading.init_done img {
-        animation: .33s ease-in-out 0s 1 forwards zooooom;
-        opacity: .05;
-      }
+            <div class="stats-section">
+                <h3 class="section-title blue">CURRENT RESULT</h3>
+                <div id="statusTxt" class="status-ready">Ready</div>
+                <hr>
+                <div id="statKroky" class="stat-item blue-bold">Steps (CPU): 0</div>
+                <div id="statCas" class="stat-item">Calculation Time: 0s</div>
+                <div class="stat-label">Directions (Empty tile):</div>
+                <div id="statCesta" class="stat-path"></div>
+                <hr>
+                <div id="statProzkoumano" class="stat-item">Nodes Explored: 0</div>
+                <div id="statNavstiveno" class="stat-item">Visited (in memory): 0</div>
+            </div>
 
-      @keyframes breathe {
-        from {
-          transform: scale(0.4);
-          opacity: 1.0;
-        }
+            <div class="divider"></div>
 
-        to {
-          transform: scale(0.35);
-          opacity: .7;
-        }
-      }
-
-      @keyframes zooooom {
-        from {
-          transform: scale(0.4)
-        }
-
-        to {
-          transform: scale(10)
-        }
-      }
-    </style>
-    <img src="icons/loading-animation.png" alt="Loading..." />
-  </div>
-  <script src="flutter_bootstrap.js" async></script>
-
-  <!-- <h1>View 1</h1>
-  <div id="view-1" style="display: flex; justify-content: center;"></div>
-  <h1>View 2</h1>
-  <div id="view-2"></div> -->
+            <div class="history-section">
+                <h3 class="section-title orange">HISTORY</h3>
+                <div id="historyList" class="history-list"></div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
 </body>
 </html>
