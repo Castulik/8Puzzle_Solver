@@ -5,10 +5,27 @@ import stack1
 import heapq
 
 TARGET_POSITIONS = {
-        1: (0, 0), 2: (0, 1), 3: (0, 2),
-        4: (1, 0), 5: (1, 1), 6: (1, 2),
-        7: (2, 0), 8: (2, 1), 0: (2, 2)
-    }
+    1: (0, 0), 2: (0, 1), 3: (0, 2), 4: (0, 3),
+    5: (1, 0), 6: (1, 1), 7: (1, 2), 8: (1, 3),
+    9: (2, 0), 10: (2, 1), 11: (2, 2), 12: (2, 3),
+    13: (3, 0), 14: (3, 1), 15: (3, 2), 0: (3, 3)
+}
+#---------- OSNOVA
+# 1. uvod, kde predstavim problem 8 puzzle
+# 2. moje reseni, prvni bych tam dal toto BFS reseni, ktere funguje dobre.
+# 2.1. přišel jsem na to, že né všechny zadání jdou vyřešit, proč?
+# Když posuneš nulu doleva nebo doprava, pořadí čísel v řadě se nezmění (inverze zůstanou stejné). Když posuneš nulu nahoru nebo dolů, přeskočíš přesně dvě čísla. Tímto skokem se počet inverzí změní buď o $+2$, $-2$, nebo zůstane stejný. Vždycky tedy zůstaneš u lichého čísla. Nikdy z pětky neuděláš nulu, i kdyby ses rozkrájel.
+# implementoval jsem tedy funkci, ktera mi podle meho goal state rekne jestli je to resitelne. Budou mi fungovat zadani se sudym poctem inverzi
+# implementoval jsem to ze merim cas plus pocet stavu k vyreseni zadani
+# bozi cislo u 8-puzzle je 31. [8, 6, 7], [2, 5, 4], [3, 0, 1] - 31 urovni, 181440 vissited
+# vsechny moznosti - $9! = 362 880, musim podelit /2 = 181 440.
+# rozdil mezi prozkoumano a vissited
+# 2.2. iplmenetovat třeba DFS, ktere by mohlo byt nekdy rychlejsi.
+# 2.3 pak mam napad na implementaci svojeho informovaneho algoritmu
+
+# 2.4 implementoval jsem A* - nejprve jsem klasicky pouzil haldu - prioritni frontu. Do teto fronty jsem mimo node ukladal take f = h + g.
+# 2.4 udělat nějaké rozhraní kde to budu moct vyřešit ručně. Nebo použití algoritmu co chci implementovat. Nějaké časové srovnání algoritmů v aplikaci.
+
 
 class Node:
     def __init__(self, data, rodic=None, pohyb=None):
@@ -16,6 +33,7 @@ class Node:
         self.data = data
         self.pohyb = pohyb
         self.uroven = 0
+        self.h = 0
 
     def get_data(self):
         return self.data
@@ -39,9 +57,7 @@ class PuzzleSolver:
     
     def __init__(self, start_stav):
         self.root = Node(start_stav)
-        self.goal = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
-        self.prozkoumano = 0
-        self.navstiveno = 0
+        self.goal = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 0]]
     
     def najdi_nulu(self, matrix):
         for i in range(len(matrix)):
@@ -62,148 +78,21 @@ class PuzzleSolver:
     
     def pripustne_pohyby(self, r, s):
         pohyby = []
-        
-        # Každý prvek je (změna_r, změna_s, název_směru)
-        potencialni_smery = [
-            (-1, 0, "nahoru"),  # Mínus v řádku = nahoru
-            (1, 0, "dolu"),     # Plus v řádku = dolu
-            (0, -1, "doleva"),  # Mínus ve sloupci = doleva
-            (0, 1, "doprava")   # Plus ve sloupci = doprava
-        ] 
-        
+        n = len(self.goal) # 3 nebo 4
+        potencialni_smery = [(-1, 0, "nahoru"), (1, 0, "dolu"), (0, -1, "doleva"), (0, 1, "doprava")] 
         for dr, ds, smer in potencialni_smery:
             novy_r, novy_s = r + dr, s + ds
-            
-            # Kontrola hranic matice 3x3
-            if 0 <= novy_r < 3 and 0 <= novy_s < 3:
-                # Uložíme souřadnice i název směru
+            if 0 <= novy_r < n and 0 <= novy_s < n:
                 pohyby.append((novy_r, novy_s, smer))
-                
         return pohyby
-        
-    def solve_puzzle_bfs(self):
-        self.prozkoumano = 0 
-        fifo = queue1.Queue()
-        fifo.push(self.root)
-        
-        visited = set()
-        visited.add(tuple(map(tuple, self.root.data)))
-        
-        while not fifo.is_empty():
-            node = fifo.pop()
-            self.prozkoumano += 1 #beru z fifo
-            
-            if self.srovnani_matic(node.data):
-                self.navstiveno = len(visited)
-                return node
-            
-            r0, s0 = self.najdi_nulu(node.data)
-            
-            for r, s, smer in self.pripustne_pohyby(r0, s0):
-                #vytvoreni kopie
-                novy_stav = [row[:] for row in node.data]
-                
-                cislo = novy_stav[r][s]
-                novy_stav[r0][s0] = cislo
-                novy_stav[r][s] = 0
-                
-                stav_jako_tuple = tuple(map(tuple, novy_stav))
-                
-                if stav_jako_tuple not in visited:
-                    visited.add(stav_jako_tuple) #pridavam do visited dalsi stavy z fifo nody
-                    
-                    novy_uzel = Node(novy_stav)
-                    novy_uzel.set_pohyb(smer)
-                    novy_uzel.set_rodic(node)
-                
-                    fifo.push(novy_uzel)
-        return None
-                    
-    def solve_puzzle_dfs(self):
-        self.prozkoumano = 0
-        
-        stack = stack1.Stack()
-        stack.push(self.root)
-        
-        visited = set()
-        visited.add(tuple(map(tuple, self.root.data)))
-        
-        while not stack.is_empty(): # Dokud není zásobník prázdný
-            node = stack.pop() #bere POSLEDNÍ přidaný prvek
-            self.prozkoumano += 1
-            
-            if self.srovnani_matic(node.data):
-                self.navstiveno = len(visited)
-                return node
-            
-            r0, s0 = self.najdi_nulu(node.data)
-            
-            for r, s, smer in self.pripustne_pohyby(r0, s0):
-                #vytvoreni kopie
-                novy_stav = [row[:] for row in node.data]
-                
-                cislo = novy_stav[r][s]
-                novy_stav[r0][s0] = cislo
-                novy_stav[r][s] = 0
-                
-                stav_jako_tuple = tuple(map(tuple, novy_stav))
-                
-                if stav_jako_tuple not in visited:
-                    visited.add(stav_jako_tuple) #pridavam do visited dalsi stavy z fifo nody
-                    
-                    novy_uzel = Node(novy_stav)
-                    novy_uzel.set_pohyb(smer)
-                    novy_uzel.set_rodic(node)
-                
-                    stack.push(novy_uzel)
-        return None
     
-    def solve_puzzle_dfs_limit(self):
-        self.prozkoumano = 0
+    def informovany_algortimus_a_star_tiebreaking_LC(self):
+        if not self.resitelnost(self.root.data):
+            print("--- Neresitelne ---")
+            return None
         
-        stack = stack1.Stack()
-        stack.push(self.root)
-        
-        visited = {tuple(map(tuple, self.root.data)): 0} # Změna na slovník: stav -> hloubka
-        
-        while not stack.is_empty(): # Dokud není zásobník prázdný
-            node = stack.pop() #bere POSLEDNÍ přidaný prvek
-            self.prozkoumano += 1
-            
-            if self.srovnani_matic(node.data):
-                self.navstiveno = len(visited)
-                return node
-            
-            if node.uroven >= 31:
-                continue
-            
-            r0, s0 = self.najdi_nulu(node.data)
-            
-            for r, s, smer in self.pripustne_pohyby(r0, s0):
-                #vytvoreni kopie
-                novy_stav = [row[:] for row in node.data]
-                
-                cislo = novy_stav[r][s]
-                novy_stav[r0][s0] = cislo
-                novy_stav[r][s] = 0
-                
-                stav_jako_tuple = tuple(map(tuple, novy_stav))
-                nova_hloubka = node.uroven + 1
-                
-                #Navštívíme stav jen pokud jsme v menší nebo stejné hloubce než minule
-                if stav_jako_tuple not in visited or nova_hloubka < visited[stav_jako_tuple]:
-                    visited[stav_jako_tuple] = nova_hloubka
-                    
-                    novy_uzel = Node(novy_stav)
-                    novy_uzel.set_pohyb(smer)
-                    novy_uzel.set_rodic(node)
-                    novy_uzel.uroven = nova_hloubka 
-                    
-                    stack.push(novy_uzel)
-        return None
-    
-    def informovany_algortimus_a_star(self):
-        self.prozkoumano = 0
+        start_time = time.time()
+        prozkoumano_stavu = 0
         count = 0 # 1. OPRAVA: Počítadlo pro řešení shod v haldě
         priority_queue = []
         
@@ -214,62 +103,21 @@ class PuzzleSolver:
         
         while priority_queue: # Dokud není zásobník prázdný
             f, h, c, node = heapq.heappop(priority_queue) #nejnizsi f
-            self.prozkoumano += 1
+            prozkoumano_stavu += 1
             
             if self.srovnani_matic(node.data):
-                self.navstiveno = len(visited)
+                end_time = time.time()
+                print("--- Vyreseno (a*_tiebreaking_LC) ---")
+                print(f"Cas: {end_time - start_time:.4f} s")
+                print(f"Delka cesty: {len(self.zpateční_cesta(node))}")
+                print(f"Prozkoumano stavu: {prozkoumano_stavu}")
+                print(f"Celkem v pameti (visited): {len(visited)}")
                 return node
+            
+            if node.uroven >= 200: continue
             
             r0, s0 = self.najdi_nulu(node.data)
             pohyby = self.pripustne_pohyby(r0, s0)
-            
-            
-            for r, s, smer in pohyby:
-                #vytvoreni kopie
-                novy_stav = [row[:] for row in node.data]
-                
-                cislo = novy_stav[r][s]
-                novy_stav[r0][s0] = cislo
-                novy_stav[r][s] = 0
-                
-                stav_jako_tuple = tuple(map(tuple, novy_stav))
-                
-                if stav_jako_tuple not in visited:
-                    visited.add(stav_jako_tuple)
-                    
-                    novy_uzel = Node(novy_stav)
-                    novy_uzel.set_pohyb(smer)
-                    novy_uzel.set_rodic(node)
-                    
-                    novy_uzel.uroven = node.uroven + 1
-                    h = self.manhaton(novy_stav)
-                    f = novy_uzel.uroven + h
-                    
-                    count += 1 # Zvýšíme pořadové číslo
-                    heapq.heappush(priority_queue, (f, h, count, novy_uzel))
-        return None
-    
-    def informovany_algortimus_a_star_LC(self):
-        self.prozkoumano = 0
-        count = 0 # 1. OPRAVA: Počítadlo pro řešení shod v haldě
-        priority_queue = []
-        
-        heapq.heappush(priority_queue, (0, 0, count, self.root))
-        
-        visited = set()
-        visited.add(tuple(map(tuple, self.root.data)))
-        
-        while priority_queue: # Dokud není zásobník prázdný
-            f, h, c, node = heapq.heappop(priority_queue) #nejnizsi f
-            self.prozkoumano += 1
-            
-            if self.srovnani_matic(node.data):
-                self.navstiveno = len(visited)
-                return node
-            
-            r0, s0 = self.najdi_nulu(node.data)
-            pohyby = self.pripustne_pohyby(r0, s0)
-            
             
             for r, s, smer in pohyby:
                 #vytvoreni kopie
@@ -296,65 +144,13 @@ class PuzzleSolver:
                     heapq.heappush(priority_queue, (f, h, count, novy_uzel))
         return None
     
-    def informovany_algortimus_a_star_weighted(self):
-        self.prozkoumano = 0
-        count = 0 # 1. OPRAVA: Počítadlo pro řešení shod v haldě
-        priority_queue = []
+    def informovany_algortimus_a_star(self):
+        if not self.resitelnost(self.root.data):
+            print("--- Neresitelne ---")
+            return None
         
-        heapq.heappush(priority_queue, (0, 0, count, self.root))
-        
-        visited = set()
-        visited.add(tuple(map(tuple, self.root.data)))
-        
-        while priority_queue: # Dokud není zásobník prázdný
-            f, h, c, node = heapq.heappop(priority_queue) #nejnizsi f
-            self.prozkoumano += 1
-            
-            if self.srovnani_matic(node.data):
-                self.navstiveno = len(visited)
-                return node
-            
-            r0, s0 = self.najdi_nulu(node.data)
-            pohyby = self.pripustne_pohyby(r0, s0)
-            
-            if node.uroven >= 31:
-                continue
-            
-            for r, s, smer in pohyby:
-                #vytvoreni kopie
-                novy_stav = [row[:] for row in node.data]
-                
-                cislo = novy_stav[r][s]
-                novy_stav[r0][s0] = cislo
-                novy_stav[r][s] = 0
-                
-                stav_jako_tuple = tuple(map(tuple, novy_stav))
-                
-                # 2. Oprava: Navštívíme stav jen pokud jsme v menší nebo stejné hloubce než minule
-                if stav_jako_tuple not in visited:
-                    visited.add(stav_jako_tuple)
-                    
-                    novy_uzel = Node(novy_stav)
-                    novy_uzel.set_pohyb(smer)
-                    novy_uzel.set_rodic(node)
-                    
-                    novy_uzel.uroven = node.uroven + 1
-                    h = self.manhaton(novy_stav)
-                    
-                    # Pokud je Manhattan (h) velký, dej mu větší váhu (chovej se jako Greedy)
-                    if h > 10:
-                        f = novy_uzel.uroven + (2 * h)  # Váha 2 - agresivnější hledání
-                    else:
-                        f = novy_uzel.uroven + h        # Klasické A* pro přesné dojetí do cíle
-                    
-                    count += 1 # Zvýšíme pořadové číslo
-                    # vlozime h, takze kdyz je stejne f, budeme se rozhodovat podle h
-                    # mensi h znamena, ze jsme blize k cily - mensi manhaton
-                    heapq.heappush(priority_queue, (f, h, count, novy_uzel))
-        return None
-    
-    def informovany_algortimus_greedy(self):
-        self.prozkoumano = 0
+        start_time = time.time()
+        prozkoumano_stavu = 0
         count = 0 # 1. OPRAVA: Počítadlo pro řešení shod v haldě
         priority_queue = []
         
@@ -365,17 +161,140 @@ class PuzzleSolver:
         
         while priority_queue: # Dokud není zásobník prázdný
             f, c, node = heapq.heappop(priority_queue) #nejnizsi f
-            self.prozkoumano += 1
+            prozkoumano_stavu += 1
             
             if self.srovnani_matic(node.data):
-                self.navstiveno = len(visited)
+                end_time = time.time()
+                print("--- Vyreseno (a*) ---")
+                print(f"Cas: {end_time - start_time:.4f} s")
+                print(f"Delka cesty: {len(self.zpateční_cesta(node))}")
+                print(f"Prozkoumano stavu: {prozkoumano_stavu}")
+                print(f"Celkem v pameti (visited): {len(visited)}")
                 return node
+            
+            if node.uroven >= 200: continue
             
             r0, s0 = self.najdi_nulu(node.data)
             pohyby = self.pripustne_pohyby(r0, s0)
             
-            if node.uroven >= 100:
-                continue
+            for r, s, smer in pohyby:
+                #vytvoreni kopie
+                novy_stav = [row[:] for row in node.data]
+                
+                cislo = novy_stav[r][s]
+                novy_stav[r0][s0] = cislo
+                novy_stav[r][s] = 0
+                
+                stav_jako_tuple = tuple(map(tuple, novy_stav))
+                
+                if stav_jako_tuple not in visited:
+                    visited.add(stav_jako_tuple)
+                    
+                    novy_uzel = Node(novy_stav)
+                    novy_uzel.set_pohyb(smer)
+                    novy_uzel.set_rodic(node)
+                    
+                    novy_uzel.uroven = node.uroven + 1
+                    h = self.manhaton(novy_stav)
+                    f = novy_uzel.uroven + h
+                    
+                    count += 1 # Zvýšíme pořadové číslo
+                    heapq.heappush(priority_queue, (f, count, novy_uzel))
+        return None
+    
+    def informovany_algortimus_a_star_LC(self):
+        if not self.resitelnost(self.root.data):
+            print("--- Neresitelne ---")
+            return None
+        
+        start_time = time.time()
+        prozkoumano_stavu = 0
+        count = 0 # 1. OPRAVA: Počítadlo pro řešení shod v haldě
+        priority_queue = []
+        
+        heapq.heappush(priority_queue, (0, count, self.root))
+        
+        visited = set()
+        visited.add(tuple(map(tuple, self.root.data)))
+        
+        while priority_queue: # Dokud není zásobník prázdný
+            f, c, node = heapq.heappop(priority_queue) #nejnizsi f
+            prozkoumano_stavu += 1
+            
+            if self.srovnani_matic(node.data):
+                end_time = time.time()
+                print("--- Vyreseno (a*_LC) ---")
+                print(f"Cas: {end_time - start_time:.4f} s")
+                print(f"Delka cesty: {len(self.zpateční_cesta(node))}")
+                print(f"Prozkoumano stavu: {prozkoumano_stavu}")
+                print(f"Celkem v pameti (visited): {len(visited)}")
+                return node
+            
+            if node.uroven >= 200: continue
+            
+            r0, s0 = self.najdi_nulu(node.data)
+            pohyby = self.pripustne_pohyby(r0, s0)
+            
+            for r, s, smer in pohyby:
+                #vytvoreni kopie
+                novy_stav = [row[:] for row in node.data]
+                
+                cislo = novy_stav[r][s]
+                novy_stav[r0][s0] = cislo
+                novy_stav[r][s] = 0
+                
+                stav_jako_tuple = tuple(map(tuple, novy_stav))
+                
+                if stav_jako_tuple not in visited:
+                    visited.add(stav_jako_tuple)
+                    
+                    novy_uzel = Node(novy_stav)
+                    novy_uzel.set_pohyb(smer)
+                    novy_uzel.set_rodic(node)
+                    
+                    novy_uzel.uroven = node.uroven + 1
+                    h = self.manhaton_LC(novy_stav)
+                    f = novy_uzel.uroven + h
+                    
+                    count += 1 # Zvýšíme pořadové číslo
+                    heapq.heappush(priority_queue, (f, count, novy_uzel))
+        return None
+    
+    def informovany_algortimus_a_star_weighted(self):
+        if not self.resitelnost(self.root.data):
+            print("--- Neresitelne ---")
+            return None
+        
+        start_time = time.time()
+        prozkoumano_stavu = 0
+        count = 0 # 1. OPRAVA: Počítadlo pro řešení shod v haldě
+        priority_queue = []
+        
+        heapq.heappush(priority_queue, (0, 0, count, self.root))
+        
+        visited = set()
+        visited.add(tuple(map(tuple, self.root.data)))
+        
+        while priority_queue: # Dokud není zásobník prázdný
+            f, h, c, node = heapq.heappop(priority_queue) #nejnizsi f
+            prozkoumano_stavu += 1
+            
+            if self.srovnani_matic(node.data):
+                end_time = time.time()
+                print("--- Vyreseno (a*weighted) ---")
+                print(f"Cas: {end_time - start_time:.4f} s")
+                print(f"Delka cesty: {len(self.zpateční_cesta(node))}")
+                print(f"Prozkoumano stavu: {prozkoumano_stavu}")
+                print(f"Celkem v pameti (visited): {len(visited)}")
+                return node
+            
+            if prozkoumano_stavu % 1000000 == 0:
+                print(f"Hledám... prozkoumáno {prozkoumano_stavu} stavů, ve frontě je {len(priority_queue)}")
+            
+            if node.uroven >= 200: continue
+            
+            r0, s0 = self.najdi_nulu(node.data)
+            pohyby = self.pripustne_pohyby(r0, s0)
             
             for r, s, smer in pohyby:
                 #vytvoreni kopie
@@ -396,13 +315,20 @@ class PuzzleSolver:
                     novy_uzel.set_rodic(node)
                     
                     novy_uzel.uroven = node.uroven + 1
-                    h = self.manhaton(novy_stav)
-                    f = h
+                    h = self.manhaton_LC(novy_stav)
+                    
+                    # Pokud je Manhattan (h) velký, dej mu větší váhu (chovej se jako Greedy)
+                    if h > 10:
+                        f = novy_uzel.uroven + (5 * h)  # Váha 2 - agresivnější hledání
+                    else:
+                        f = novy_uzel.uroven + h        # Klasické A* pro přesné dojetí do cíle
                     
                     count += 1 # Zvýšíme pořadové číslo
-                    heapq.heappush(priority_queue, (f, count, novy_uzel))
-        return None
-                    
+                    #vlozime h, takze kdyz je stejne f, budeme se rozhodovat podle h
+                    # mensi h znamena, ze jsme blize k cily - mensi manhaton
+                    heapq.heappush(priority_queue, (f, h, count, novy_uzel))
+        return None             
+    
     def manhaton(self, matrix):
         
         total_h = 0
@@ -467,34 +393,47 @@ class PuzzleSolver:
                     total_h += 2
                         
         return total_h
-    
+
     def zpateční_cesta(self, node):
         
         cesta = []
-        aktualni = node
-        while aktualni != None:
-            cesta.append(aktualni.get_data())
-            aktualni = aktualni.get_rodic()
+        
+        while node.get_rodic() != None:
+            cesta.append(node.get_pohyb())
+            node = node.get_rodic()
         
         cesta.reverse()
         
         return cesta      
     
     def resitelnost(self, data):
-        #prevedeni matice na seznam bez nuly
-        seznam = []
+        n = len(data)
+        seznam = [c for radek in data for c in radek if c != 0]
+        inverze = sum(seznam[i] > seznam[j] for i in range(len(seznam)) for j in range(i + 1, len(seznam)))
         
-        for radek in data:
-            for cislo in radek:
-                if cislo != 0:
-                    seznam.append(cislo)
-        
-        #vypocet inverzi pro resitelnost
-        inverze = 0
-        n = len(seznam)
-        for i in range(n):
-            for j in range(i + 1, n):
-                if seznam[i] > seznam[j]:
-                    inverze += 1
-        
-        return inverze % 2 == 0
+        if n % 2 != 0: # Pro 3x3, 5x5...
+            return inverze % 2 == 0
+        else: # Pro 4x4
+            r0, _ = self.najdi_nulu(data)
+            radek_odspodu = n - r0
+            # Pravidlo: (inverze + radek_nuly_odspodu) musí mít specifickou paritu
+            return (inverze + radek_odspodu) % 2 != 0
+                
+                
+puzzle = PuzzleSolver([
+    [0, 12, 9, 13],
+    [15, 11, 10, 14],
+    [3, 7, 2, 5],
+    [4, 8, 6, 1]
+])
+
+#vysledek = puzzle.informovany_algortimus_a_star()
+#vysledek = puzzle.informovany_algortimus_a_star_LC()
+#vysledek = puzzle.informovany_algortimus_a_star_tiebreaking_LC()
+vysledek = puzzle.informovany_algortimus_a_star_weighted()
+
+#fungoval jenom weighted bud s LC nebo klasik manhaton. Vaha byla rovna 5.
+
+#cesta = puzzle.zpateční_cesta(vysledek)
+#print(cesta)
+#print(len(cesta))

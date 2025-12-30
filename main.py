@@ -1,5 +1,3 @@
-# at to ukazuje v UI cestu, ktera se solverem provadi.
-# 
 import mimetypes
 import flet as ft
 import asyncio
@@ -16,22 +14,26 @@ async def main(page: ft.Page):
     page.theme_mode = ft.ThemeMode.DARK
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
-    page.padding = 30
+    page.padding = 20
+    # Rozšíříme okno, aby se vešla i historie
+    page.window_width = 1100
+    page.window_height = 800
 
     # --- STAVOVÉ PROMĚNNÉ ---
     CILOVY_STAV = [1, 2, 3, 4, 5, 6, 7, 8, 0]
-    stav_seznam = [1, 2, 3, 4, 5, 6, 7, 8, 0]
+    stav_seznam = [8, 6, 7, 2, 5, 4, 3, 0, 1]
     stav_shuffled_start = list(stav_seznam) 
     is_animating = False 
-    pocet_tahu_manual = 0 
 
     # --- UI KOMPONENTY ---
     txt_status = ft.Text("Připraven", size=18, weight=ft.FontWeight.BOLD)
-    txt_manual_tahy = ft.Text("Tvoje tahy: 0", color="amber", weight="bold", size=16)
-    txt_kroky_cpu = ft.Text("Kroky (CPU): 0", color="blue")
+    txt_kroky_cpu = ft.Text("Kroky (CPU): 0", color="blue", weight="bold")
     txt_cas = ft.Text("Čas výpočtu: 0s")
     txt_prozkoumano = ft.Text("Prozkoumáno uzlů: 0")
     txt_visited = ft.Text("Navštíveno (v paměti): 0")
+    
+    # Historie - ListView pro záznamy
+    history_column = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO)
     
     loader = ft.ProgressBar(width=400, color="blue", visible=False)
     mrizka = ft.GridView(expand=False, runs_count=3, max_extent=110, spacing=8, width=350)
@@ -67,21 +69,18 @@ async def main(page: ft.Page):
         btn_zamichat.disabled = busy
         btn_reset.disabled = busy
         dropdown_algo.disabled = busy
-        btn_stop.visible = busy # STOP je vidět jen při animaci/výpočtu
+        btn_stop.visible = busy
         loader.visible = busy
         page.update()
 
-    # --- LOGIKA ---
     def klik_na_dlazdici(idx_klik):
-        nonlocal stav_seznam, pocet_tahu_manual
+        nonlocal stav_seznam
         if is_animating or btn_vyresit.disabled: return
         idx_nula = stav_seznam.index(0)
         r_k, c_k = divmod(idx_klik, 3)
         r_n, c_n = divmod(idx_nula, 3)
         if abs(r_k - r_n) + abs(c_k - c_n) == 1:
             stav_seznam[idx_klik], stav_seznam[idx_nula] = stav_seznam[idx_nula], stav_seznam[idx_klik]
-            pocet_tahu_manual += 1
-            txt_manual_tahy.value = f"Tvoje tahy: {pocet_tahu_manual}"
             vykresli_ui()
 
     async def stop_animace(e):
@@ -91,10 +90,8 @@ async def main(page: ft.Page):
         page.update()
 
     async def reset_na_start(e):
-        nonlocal stav_seznam, pocet_tahu_manual
+        nonlocal stav_seznam
         stav_seznam = list(stav_shuffled_start)
-        pocet_tahu_manual = 0
-        txt_manual_tahy.value = "Tvoje tahy: 0"
         txt_status.value = "Zpět na začátku zadání"
         txt_status.color = "white"
         vykresli_ui()
@@ -102,6 +99,19 @@ async def main(page: ft.Page):
     async def spust_vypocet(e):
         nonlocal stav_seznam, is_animating
         if je_vyreseno(): return
+        
+        # Zapamatujeme si startovní stav pro historii (ve formátu řetězce)
+        pocatecni_stav_pro_historii = str(list(stav_seznam))
+
+        mapovani_funkci = {
+            "BFS": "solve_puzzle_bfs",
+            "DFS": "solve_puzzle_dfs",
+            "DFS Limit": "solve_puzzle_dfs_limit",
+            "A*": "informovany_algortimus_a_star",
+            "A* LC": "informovany_algortimus_a_star_LC",
+            "A* Weighted": "informovany_algortimus_a_star_weighted",
+            "Greedy": "informovany_algortimus_greedy"
+        }
 
         matice_start = [stav_seznam[i:i+3] for i in range(0, 9, 3)]
         solver = PuzzleSolver(matice_start)
@@ -116,17 +126,51 @@ async def main(page: ft.Page):
         await asyncio.sleep(0.1)
 
         start_t = time.time()
-        algo_name = f"solve_puzzle_{dropdown_algo.value.lower().replace(' ', '_')}"
+        vybrany_text = dropdown_algo.value
+        algo_name = mapovani_funkci.get(vybrany_text)
+
+        if not algo_name:
+            txt_status.value = "CHYBA: Algoritmus nenalezen!"
+            set_ui_busy(False)
+            return
+
         uzol = await asyncio.to_thread(getattr(solver, algo_name))
         trvani = time.time() - start_t
 
         if uzol:
             cesta_matic = solver.zpateční_cesta(uzol)
+            tahy_pocet = len(cesta_matic) - 1
+            
+            # Aktualizace aktuálních hodnot
             txt_status.value, txt_status.color = "Nalezeno! Animuji...", "green"
             txt_cas.value = f"Čas výpočtu: {trvani:.4f} s"
-            txt_kroky_cpu.value = f"Kroky (CPU): {len(cesta_matic) - 1}"
+            txt_kroky_cpu.value = f"Kroky (CPU): {tahy_pocet}"
             txt_prozkoumano.value = f"Prozkoumáno: {solver.prozkoumano}"
             txt_visited.value = f"Navštíveno: {solver.navstiveno}"
+            
+            # --- PŘIDÁNÍ DO HISTORIE ---
+            history_item = ft.Container(
+                content=ft.Column([
+                    ft.Text(f"{vybrany_text}", weight="bold", color="blue200", size=14),
+                    ft.Text(f"Start: {pocatecni_stav_pro_historii}", size=10, color="grey400", font_family="monospace"),
+                    ft.Row([
+                        ft.Text(f"Tahy: {tahy_pocet}", size=11),
+                        ft.Text(f"Čas: {trvani:.3f}s", size=11),
+                    ], spacing=15),
+                    ft.Text(f"P/V: {solver.prozkoumano} / {solver.navstiveno}", size=11, color="grey500"),
+                ], spacing=2),
+                padding=10,
+                border=ft.border.all(1, "grey700"),
+                border_radius=8,
+                bgcolor=ft.Colors.with_opacity(0.1, "white")
+            )
+            
+            # Vložit na začátek (nejnovější nahoře)
+            history_column.controls.insert(0, history_item)
+            # Udržovat max 8 záznamů
+            if len(history_column.controls) > 8:
+                history_column.controls.pop()
+            
             page.update()
 
             is_animating = True
@@ -143,30 +187,39 @@ async def main(page: ft.Page):
             set_ui_busy(False)
 
     def zamichej(e):
-        nonlocal stav_seznam, stav_shuffled_start, pocet_tahu_manual
+        nonlocal stav_seznam, stav_shuffled_start
         temp_solver = PuzzleSolver([[0]*3]*3)
         while True:
             random.shuffle(stav_seznam)
             if temp_solver.resitelnost([stav_seznam[i:i+3] for i in range(0, 9, 3)]) and not je_vyreseno():
                 break
         stav_shuffled_start = list(stav_seznam)
-        pocet_tahu_manual = 0
         txt_kroky_cpu.value = "Kroky (CPU): 0"
-        txt_manual_tahy.value = "Tvoje tahy: 0"
         txt_status.value = "Nové zadání"
         txt_status.color = "white"
         vykresli_ui()
 
     # --- KOMPONENTY ---
     dropdown_algo = ft.Dropdown(
-        label="Algoritmus", value="BFS", width=140,
-        options=[ft.dropdown.Option("BFS"), ft.dropdown.Option("DFS"), ft.dropdown.Option("DFS Limit")],
+        label="Algoritmus", 
+        value="A* Weighted",
+        width=200,
+        options=[
+            ft.dropdown.Option("BFS"),
+            ft.dropdown.Option("DFS"),
+            ft.dropdown.Option("DFS Limit"),
+            ft.dropdown.Option("A*"),
+            ft.dropdown.Option("A* LC"),
+            ft.dropdown.Option("A* Weighted"),
+            ft.dropdown.Option("Greedy"),
+        ],
     )
     btn_vyresit = ft.FilledButton("VYŘEŠIT", on_click=spust_vypocet, icon=ft.Icons.AUTO_FIX_HIGH)
     btn_zamichat = ft.FilledButton("NOVÉ ZADÁNÍ", on_click=zamichej, icon=ft.Icons.SHUFFLE, bgcolor="bluegrey-700")
     btn_reset = ft.OutlinedButton("ZPĚT NA START", on_click=reset_na_start, icon=ft.Icons.RESTART_ALT)
     btn_stop = ft.FilledTonalButton("STOP", on_click=stop_animace, icon=ft.Icons.STOP, visible=False, color="red")
 
+    # Hlavní rozložení: Levý panel (Board) | Střední (Stats) | Pravý (History)
     page.add(
         ft.Column([
             ft.Text("8-Puzzle: MZI Solver", size=32, weight="bold"),
@@ -174,19 +227,36 @@ async def main(page: ft.Page):
             ft.Row([dropdown_algo, btn_vyresit, btn_zamichat, btn_reset, btn_stop], alignment="center"),
             ft.Divider(),
             ft.Row([
+                # 1. Hrací pole
                 ft.Container(mrizka, padding=10, border=ft.Border.all(1, "grey300"), border_radius=10),
+                
+                # 2. Aktuální statistiky
                 ft.Column([
+                    ft.Text("AKTUÁLNÍ VÝSLEDEK", weight="bold", color="blue"),
                     txt_status,
-                    ft.Divider(height=10, color="transparent"),
-                    txt_manual_tahy,
-                    txt_kroky_cpu,
                     ft.Divider(height=10),
+                    txt_kroky_cpu,
                     txt_cas,
                     txt_prozkoumano,
                     txt_visited,
                     ft.Text("\nCíl:", weight="bold"),
                     ft.Text("1 2 3\n4 5 6\n7 8 0", font_family="monospace", size=14)
-                ], width=250)
+                ], width=200),
+                
+                # 3. Historie
+                ft.VerticalDivider(width=20),
+                ft.Column([
+                    ft.Text("HISTORIE (POSLEDNÍCH 8)", weight="bold", color="orange"),
+                    ft.Container(
+                        content=history_column,
+                        width=300,
+                        height=450,
+                        bgcolor=ft.Colors.with_opacity(0.05, "white"),
+                        border_radius=10,
+                        padding=10
+                    )
+                ])
+
             ], alignment="center", vertical_alignment="start")
         ], horizontal_alignment="center")
     )
