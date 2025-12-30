@@ -10,7 +10,7 @@ mimetypes.add_type('application/javascript', '.js')
 mimetypes.add_type('application/javascript', '.mjs')
 
 async def main(page: ft.Page):
-    page.title = "8-Puzzle: Solver MZI"
+    page.title = "8-Puzzle: Solver"
     page.theme_mode = ft.ThemeMode.DARK
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
@@ -214,17 +214,51 @@ async def main(page: ft.Page):
             ft.dropdown.Option("Greedy"),
         ],
     )
-    btn_vyresit = ft.FilledButton("VYŘEŠIT", on_click=spust_vypocet, icon=ft.Icons.AUTO_FIX_HIGH)
-    btn_zamichat = ft.FilledButton("NOVÉ ZADÁNÍ", on_click=zamichej, icon=ft.Icons.SHUFFLE, bgcolor="bluegrey-700")
-    btn_reset = ft.OutlinedButton("ZPĚT NA START", on_click=reset_na_start, icon=ft.Icons.RESTART_ALT)
-    btn_stop = ft.FilledTonalButton("STOP", on_click=stop_animace, icon=ft.Icons.STOP, visible=False, color="red")
+    # --- KOMPONENTY S UPRAVENÝMI BARVAMI ---
+
+    # Tlačítko VYŘEŠIT - modrá (akční barva)
+    btn_vyresit = ft.FilledButton(
+        "VYŘEŠIT", 
+        on_click=spust_vypocet, 
+        icon=ft.Icons.AUTO_FIX_HIGH,
+        bgcolor=ft.Colors.BLUE_700,
+        color=ft.Colors.WHITE
+    )
+
+    # Tlačítko ZAMÍCHAT - jantarová/oranžová (příprava)
+    btn_zamichat = ft.FilledButton(
+        "ZAMÍCHAT", 
+        on_click=zamichej, 
+        icon=ft.Icons.SHUFFLE, 
+        bgcolor=ft.Colors.AMBER_800,
+        color=ft.Colors.WHITE
+    )
+
+    # Tlačítko ZPĚT NA START - šedá nebo tmavě modrá (neutrální)
+    # U OutlinedButton mění parametr 'color' barvu textu i čáry
+    btn_reset = ft.OutlinedButton(
+        "ZPĚT NA START", 
+        on_click=reset_na_start, 
+        icon=ft.Icons.RESTART_ALT,
+        style=ft.ButtonStyle(color=ft.Colors.BLUE_GREY_200)
+    )
+
+    # Tlačítko STOP - výrazná červená
+    btn_stop = ft.FilledTonalButton(
+        "STOP", 
+        on_click=stop_animace, 
+        icon=ft.Icons.STOP, 
+        visible=False, 
+        bgcolor=ft.Colors.RED_700,
+        color=ft.Colors.WHITE
+    )
 
     # Hlavní rozložení: Levý panel (Board) | Střední (Stats) | Pravý (History)
     page.add(
         ft.Column([
-            ft.Text("8-Puzzle: MZI Solver", size=32, weight="bold"),
+            ft.Text("8-Puzzle: Solver", size=32, weight="bold"),
             loader,
-            ft.Row([dropdown_algo, btn_vyresit, btn_zamichat, btn_reset, btn_stop], alignment="center"),
+            ft.Row([dropdown_algo, btn_vyresit, btn_reset, btn_zamichat,  btn_stop], alignment="center"),
             ft.Divider(),
             ft.Row([
                 # 1. Hrací pole

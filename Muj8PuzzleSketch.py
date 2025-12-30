@@ -108,15 +108,14 @@ class PuzzleSolver:
         fifo = queue1.Queue()
         fifo.push(self.root)
         
-        # Centrální evidence navštívených rozložení (křídy na zemi)
+        # vytvoření množiny set(), umožňuje vyhledávání O(1)
         visited = set()
-        # Musíme převést startovní matici na tuple, abychom ji mohli uložit
-        start_stav_tuple = tuple(map(tuple, self.root.data))
-        visited.add(start_stav_tuple)
+        # Musíme převést startovní matici na tuple, abychom ji mohli uložit do set()
+        visited.add(tuple(map(tuple, self.root.data)))
         
         while not fifo.is_empty():
-            node = fifo.pop()
-            prozkoumano_stavu += 1 #beru z fifo
+            node = fifo.pop() #odebrání prvku z fifo a přiřazení do node
+            prozkoumano_stavu += 1
             
             if self.srovnani_matic(node.data):
                 end_time = time.time() # Konec měření
@@ -127,19 +126,21 @@ class PuzzleSolver:
                 print(f"Celkem v pameti (visited): {len(visited)}")
                 return node
             
+            #hledani validnich pohybu vzhledem k nule
             r0, s0 = self.najdi_nulu(node.data)
             pohyby = self.pripustne_pohyby(r0, s0)
             
             for r, s, smer in pohyby:
                 #vytvoreni kopie
                 novy_stav = [row[:] for row in node.data]
-                
+                #aplikace validnich pohybu a vytvoreni noveho stavu
                 cislo = novy_stav[r][s]
                 novy_stav[r0][s0] = cislo
                 novy_stav[r][s] = 0
                 
                 stav_jako_tuple = tuple(map(tuple, novy_stav))
                 
+                #podivame se jestli jsme uz nahodou nebyli v tomto nahodnem stavu
                 if stav_jako_tuple not in visited:
                     visited.add(stav_jako_tuple) #pridavam do visited dalsi stavy z fifo nody
                     
@@ -148,6 +149,7 @@ class PuzzleSolver:
                     novy_uzel.set_rodic(node)
                 
                     fifo.push(novy_uzel)
+        return None
                     
     def solve_puzzle_dfs(self):
         if not self.resitelnost(self.root.data):
@@ -243,7 +245,7 @@ class PuzzleSolver:
                 stav_jako_tuple = tuple(map(tuple, novy_stav))
                 nova_hloubka = node.uroven + 1
                 
-                # 2. Oprava: Navštívíme stav jen pokud jsme v menší nebo stejné hloubce než minule
+                # Navštívíme stav jen pokud jsme v menší nebo stejné hloubce než minule nebo neni visited
                 if stav_jako_tuple not in visited or nova_hloubka < visited[stav_jako_tuple]:
                     visited[stav_jako_tuple] = nova_hloubka
                     
@@ -321,13 +323,13 @@ class PuzzleSolver:
         count = 0 # 1. OPRAVA: Počítadlo pro řešení shod v haldě
         priority_queue = []
         
-        heapq.heappush(priority_queue, (0, count, self.root))
+        heapq.heappush(priority_queue, (0, 0, count, self.root))
         
         visited = set()
         visited.add(tuple(map(tuple, self.root.data)))
         
         while priority_queue: # Dokud není zásobník prázdný
-            f, c, node = heapq.heappop(priority_queue) #nejnizsi f
+            f, h, c, node = heapq.heappop(priority_queue) #nejnizsi f
             prozkoumano_stavu += 1
             
             if self.srovnani_matic(node.data):
@@ -365,7 +367,7 @@ class PuzzleSolver:
                     f = novy_uzel.uroven + h
                     
                     count += 1 # Zvýšíme pořadové číslo
-                    heapq.heappush(priority_queue, (f, count, novy_uzel))
+                    heapq.heappush(priority_queue, (f, h, count, novy_uzel))
         return None
     
     def informovany_algortimus_a_star_LC(self):
@@ -378,13 +380,13 @@ class PuzzleSolver:
         count = 0 # 1. OPRAVA: Počítadlo pro řešení shod v haldě
         priority_queue = []
         
-        heapq.heappush(priority_queue, (0, count, self.root))
+        heapq.heappush(priority_queue, (0, 0, count, self.root))
         
         visited = set()
         visited.add(tuple(map(tuple, self.root.data)))
         
         while priority_queue: # Dokud není zásobník prázdný
-            f, c, node = heapq.heappop(priority_queue) #nejnizsi f
+            f, h, c, node = heapq.heappop(priority_queue) #nejnizsi f
             prozkoumano_stavu += 1
             
             if self.srovnani_matic(node.data):
@@ -422,7 +424,7 @@ class PuzzleSolver:
                     f = novy_uzel.uroven + h
                     
                     count += 1 # Zvýšíme pořadové číslo
-                    heapq.heappush(priority_queue, (f, count, novy_uzel))
+                    heapq.heappush(priority_queue, (f, h, count, novy_uzel))
         return None
     
     def informovany_algortimus_a_star_weighted(self):
@@ -456,7 +458,7 @@ class PuzzleSolver:
             r0, s0 = self.najdi_nulu(node.data)
             pohyby = self.pripustne_pohyby(r0, s0)
             
-            if node.uroven >= 31:
+            if node.uroven >= 50:
                 continue
             
             for r, s, smer in pohyby:
@@ -650,19 +652,21 @@ class PuzzleSolver:
         return inverze % 2 == 0
                 
                 
-puzzle = PuzzleSolver([[8, 6, 7], [2, 5, 4], [3, 0, 1]])
+#puzzle = PuzzleSolver([[8, 6, 7], [2, 5, 4], [3, 0, 1]])
 
 #puzzle = PuzzleSolver([[1, 2, 3], [4, 5, 6], [7, 8, 0]])
-#puzzle = PuzzleSolver([[3, 1, 2], [6, 5, 4], [8 , 7, 0]])
+puzzle = PuzzleSolver([[3, 1, 2], [6, 5, 4], [8 , 7, 0]])
 
 #puzzle = PuzzleSolver([[3, 8, 6], [2, 5, 0], [1, 7, 4]])
 
-vysledek = puzzle.solve_puzzle_bfs()
-vysledek = puzzle.solve_puzzle_dfs_limit()
+#vysledek = puzzle.solve_puzzle_bfs()
+#vysledek = puzzle.solve_puzzle_dfs()
+#vysledek = puzzle.solve_puzzle_dfs_limit()
+
 vysledek = puzzle.informovany_algortimus_greedy()
 vysledek = puzzle.informovany_algortimus_a_star()
-vysledek = puzzle.informovany_algortimus_a_star_LC()
-vysledek = puzzle.informovany_algortimus_a_star_tiebreaking_LC()
+#vysledek = puzzle.informovany_algortimus_a_star_LC()
+#vysledek = puzzle.informovany_algortimus_a_star_tiebreaking_LC()
 vysledek = puzzle.informovany_algortimus_a_star_weighted()
 
 #cesta = puzzle.zpateční_cesta(vysledek)
