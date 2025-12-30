@@ -4,9 +4,9 @@ on:
     branches: [ main ]
     # Akce se spustí jen při změně těchto souborů
     paths:
-      - 'index.html'
-      - 'style.css'
-      - 'script.js'
+      - 'web/index.html'
+      - 'web/style.css'
+      - 'web/script.js'
       - '.github/workflows/deploy.yml'
 
 permissions:
