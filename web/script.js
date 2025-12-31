@@ -312,3 +312,21 @@ document.getElementById('btnReset').onclick = () => {
 };
 
 renderGrid();
+
+// Funkce pro vykreslení malého cílového stavu
+function renderTargetGrid() {
+    const targetGrid = document.getElementById('targetGrid');
+    const goalState = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+    
+    targetGrid.innerHTML = '';
+    goalState.forEach(n => {
+        const d = document.createElement('div');
+        d.className = `target-tile ${n === 0 ? 'empty' : ''}`;
+        d.textContent = n === 0 ? '' : n;
+        targetGrid.appendChild(d);
+    });
+}
+
+// Nezapomeň ji zavolat hned při startu (např. pod renderGrid())
+renderGrid();
+renderTargetGrid();
